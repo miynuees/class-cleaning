@@ -234,8 +234,7 @@
         #timer-screen {
             position: relative; z-index: 1;
             display: none; flex-direction: column;
-            align-items: center; justify-content: center;
-            min-height: 100vh; height: 100vh; padding: 18px 40px 24px;
+            align-items: center; min-height: 100vh; height: 100vh; padding: 18px 40px 24px;
         }
 
         .top-bar {
@@ -286,11 +285,17 @@
         .top-controls { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
 
         /* ─── 퀘스트 카드 ─── */
+        /* draw-grid와 동일한 화면상 위치에 띄움 (JS로 좌표 동기화) */
         .quest-grid {
             display: grid; grid-template-columns: repeat(5, 1fr);
-            gap: 16px; width: 100%; max-width: 1400px;
+            gap: 16px;
+            position: fixed;
+            top: var(--card-top, 50%);
+            left: var(--card-left, 50%);
+            width: var(--card-width, calc(100% - 80px));
+            max-width: 1400px;
+            transform: var(--card-transform, translate(-50%, -50%));
             align-items: start;
-            margin-top: 30px;
         }
 
         .quest-card {
@@ -640,7 +645,29 @@
             });
             grid.appendChild(card);
         });
+        // draw-grid의 화면 위치를 측정해서 quest-grid가 동일 위치에 뜨도록 동기화
+        requestAnimationFrame(() => syncGridPosition());
     }
+
+    // draw-grid 위치를 측정해서 CSS 변수로 저장 (quest-grid가 fixed로 동일 위치)
+    function syncGridPosition() {
+        const drawGrid = document.getElementById('draw-grid');
+        if (!drawGrid || drawGrid.offsetWidth === 0) return;
+        const rect = drawGrid.getBoundingClientRect();
+        const root = document.documentElement.style;
+        root.setProperty('--card-top', rect.top + 'px');
+        root.setProperty('--card-left', rect.left + 'px');
+        root.setProperty('--card-width', rect.width + 'px');
+        root.setProperty('--card-transform', 'none');
+    }
+
+    // 창 크기 변경 시 다시 측정
+    window.addEventListener('resize', () => {
+        const drawScreen = document.getElementById('draw-screen');
+        if (drawScreen && drawScreen.style.display !== 'none') {
+            syncGridPosition();
+        }
+    });
 
     // ── 청소 시작 ──
     function startCleaning() {
