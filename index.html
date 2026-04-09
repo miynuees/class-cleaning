@@ -294,43 +294,89 @@
 
         .quest-card {
             background: white;
-            border: 3px solid; border-radius: 22px; padding: 10px 14px;
+            border: 3px solid; border-radius: 22px; padding: 50px 14px 18px;
             text-align: center; cursor: pointer;
-            transition: transform 0.25s, box-shadow 0.25s, opacity 0.4s;
+            transition: transform 0.25s, box-shadow 0.25s, opacity 0.4s, background 0.3s, border-color 0.3s;
             display: flex; flex-direction: column;
-            align-items: center; justify-content: center; position: relative;
+            align-items: center; position: relative;
             box-shadow: 0 4px 16px rgba(0,0,0,0.07);
             height: 400px;
+            box-sizing: border-box;
         }
-        .quest-card:hover:not(.waiting):not(.card-done) {
+        .quest-card-content {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            flex: 1; width: 100%;
+        }
+        .quest-card:hover:not(.waiting):not(.card-done):not(.tapped) {
             transform: translateY(-6px);
             box-shadow: 0 12px 30px rgba(0,0,0,0.13);
         }
         .quest-card.waiting { opacity: 0.62; cursor: default; }
         .quest-card.card-done { opacity: 0.55; cursor: default; }
 
+        /* 탭(완료 표시) 후 강조 */
+        .quest-card.tapped {
+            background: linear-gradient(135deg, #e8f9ee 0%, #d4f4dd 100%) !important;
+            border-color: #27ae60 !important;
+            box-shadow: 0 8px 28px rgba(39,174,96,0.32) !important;
+            transform: translateY(-2px);
+        }
+        .quest-card.tapped::after {
+            content: '';
+            position: absolute; inset: 0;
+            border-radius: 22px;
+            background: rgba(39,174,96,0.04);
+            pointer-events: none;
+        }
+        .quest-card.tapped .quest-icon {
+            filter: drop-shadow(0 2px 6px rgba(39,174,96,0.4));
+        }
+        .quest-card.tapped .quest-role {
+            color: #27ae60 !important;
+        }
+
         .check-badge {
             position: absolute; top: 12px; right: 14px;
-            font-size: 1.4em; opacity: 0; transition: opacity 0.3s;
+            font-size: 1.4em; opacity: 0; transition: all 0.35s ease;
+            transform: scale(0.6);
+            z-index: 2;
         }
+        .quest-card.tapped .check-badge {
+            opacity: 1; transform: scale(1.6);
+            filter: drop-shadow(0 3px 8px rgba(39,174,96,0.6));
+            animation: tappedPulse 0.6s ease-out;
+        }
+        .quest-card.card-done .check-badge { opacity: 1; transform: scale(1); }
+        @keyframes tappedPulse {
+            0%   { transform: scale(0.6); }
+            60%  { transform: scale(1.9); }
+            100% { transform: scale(1.6); }
+        }
+
         .num-badge {
             position: absolute; top: 12px; left: 14px;
             width: 30px; height: 30px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 0.95em; font-weight: 900; color: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 2;
         }
-        .quest-card.tapped .check-badge,
-        .quest-card.card-done .check-badge { opacity: 1; }
 
         .phase-tag {
+            position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
             font-size: 0.72em; font-weight: 700; letter-spacing: 2px;
-            padding: 3px 10px; border-radius: 10px; margin-bottom: 6px;
+            padding: 3px 10px; border-radius: 10px;
+            white-space: nowrap;
         }
         .quest-icon { font-size: 2.4em; margin-bottom: 6px; }
-        .quest-role { font-size: 1.1em; font-weight: 900; margin-bottom: 4px; }
+        .quest-role { font-size: 1.1em; font-weight: 900; margin-bottom: 4px; transition: color 0.3s; }
         .quest-desc { font-size: 0.83em; color: rgba(0,0,0,0.45); line-height: 1.6; margin-bottom: 6px; }
-        .tap-hint { font-size: 0.72em; color: rgba(0,0,0,0.22); margin-top: 4px; }
+        .tap-hint {
+            font-size: 0.72em; color: rgba(0,0,0,0.22); margin-top: 4px;
+            min-height: 1.2em;
+        }
+        .tap-hint.placeholder { visibility: hidden; }
 
         /* ─── 단계 전환 오버레이 ─── */
         #phase-overlay {
@@ -630,12 +676,14 @@
                     tagStyle = 'background:rgba(0,0,0,0.05);color:rgba(0,0,0,0.3);';
                     icon = r.icon; title = r.title; desc = r.desc;
                     extraClass = 'waiting';
+                    tapHint = '<div class="tap-hint placeholder">탭하면 완료!</div>';
                 }
             } else {
                 if (role.phase === 1) {
                     tagText = '완료 ✓'; tagStyle = 'background:rgba(39,174,96,0.1);color:#27ae60;';
                     icon = '🎉'; title = '수고했어요!'; desc = '깨끗하게 쓸었어요!';
                     extraClass = 'card-done';
+                    tapHint = '<div class="tap-hint placeholder">탭하면 완료!</div>';
                 } else {
                     const r = role.phase2;
                     tagText = '2단계'; tagStyle = `background:${role.colorBg};color:${role.color};`;
@@ -655,10 +703,12 @@
                 <div class="num-badge" style="background:${badgeColor}">${idx + 1}</div>
                 <div class="check-badge">✅</div>
                 <div class="phase-tag" style="${tagStyle}">${tagText}</div>
-                <div class="quest-icon">${icon}</div>
-                <div class="quest-role" style="color:${extraClass ? (extraClass==='card-done'?'#27ae60':'#aaa') : role.color}">${title}</div>
-                <div class="quest-desc">${desc.replace('\n','<br>')}</div>
-                ${tapHint}`;
+                <div class="quest-card-content">
+                    <div class="quest-icon">${icon}</div>
+                    <div class="quest-role" style="color:${extraClass ? (extraClass==='card-done'?'#27ae60':'#aaa') : role.color}">${title}</div>
+                    <div class="quest-desc">${desc.replace('\n','<br>')}</div>
+                    ${tapHint}
+                </div>`;
 
             if (!extraClass) {
                 card.addEventListener('click', () => {
